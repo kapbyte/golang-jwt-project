@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -32,11 +31,11 @@ func HashPassword(password string) string {
 
 func VerifyPassword(userPassword string, userProvidedPassword string) (bool, string) {
 	err := bcrypt.CompareHashAndPassword([]byte(userProvidedPassword), []byte(userPassword))
-	check := false
+	check := true
 	msg := ""
 
 	if err != nil {
-		msg = fmt.Sprintf("Email or password is incorrect (:")
+		msg = "Email or password is incorrect (:"
 		check = false
 	}
 	return check, msg
@@ -61,15 +60,20 @@ func Signup() gin.HandlerFunc {
 
 		count, err := userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		defer cancel()
+
 		if err != nil {
 			log.Panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while checking for email"})
 		}
 
+		if count > 0 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "This email already exists."})
+			return
+		}
+
 		hashedPassword := HashPassword(*user.Password)
 		user.Password = &hashedPassword
 
-		// count, err := userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		count, err = userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		defer cancel()
 		if err != nil {
@@ -78,7 +82,7 @@ func Signup() gin.HandlerFunc {
 		}
 
 		if count > 0 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "This email or phone number already exists."})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "This phone number already exists."})
 			return
 		}
 
@@ -103,8 +107,11 @@ func Signup() gin.HandlerFunc {
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+
 		var user models.User
 		var foundUser models.User
+
+		defer cancel()
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -120,7 +127,7 @@ func Login() gin.HandlerFunc {
 
 		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
 		defer cancel()
-		if passwordIsValid != true {
+		if !passwordIsValid {
 			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 			return
 		}
