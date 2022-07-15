@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -8,7 +9,10 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/kapbyte/golang-jwt-project/database"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type SignedDetails struct {
@@ -83,37 +87,37 @@ func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 	return claims, msg
 }
 
-// func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
-// 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
+	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-// 	var updatedObj primitive.D
+	var updatedObj primitive.D
 
-// 	updatedObj = append(updatedObj, bson.E{"token": signedToken})
-// 	updatedObj = append(updatedObj, bson.E{"refresh_token": signedRefreshToken})
+	updatedObj = append(updatedObj, bson.E{"token", signedToken})
+	updatedObj = append(updatedObj, bson.E{"refresh_token", signedRefreshToken})
 
-// 	Updated_at, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-// 	updatedObj = append(updatedObj, bson.E{"updated_at", Updated_at})
+	Updated_at, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	updatedObj = append(updatedObj, bson.E{"updated_at", Updated_at})
 
-// 	upsert := true
-// 	filter := bson.M{"user_id": userId}
-// 	opt := options.UpdateOptions{
-// 		Upsert: &upsert,
-// 	}
+	upsert := true
+	filter := bson.M{"user_id": userId}
+	opt := options.UpdateOptions{
+		Upsert: &upsert,
+	}
 
-// 	_, err := userCollection.UpdateOne(
-// 		ctx,
-// 		filter,
-// 		bson.D{
-// 			{"$set": updatedObj},
-// 		},
-// 		&opt,
-// 	)
+	_, err := userCollection.UpdateOne(
+		ctx,
+		filter,
+		bson.D{
+			{"$set", updatedObj},
+		},
+		&opt,
+	)
 
-// 	defer cancel()
+	defer cancel()
 
-// 	if err != nil {
-// 		log.Panic(err)
-// 		return
-// 	}
-// 	return
-// }
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+	// return
+}
