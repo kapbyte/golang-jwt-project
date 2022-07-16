@@ -90,13 +90,13 @@ func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 
-	var updatedObj primitive.D
+	var updateObj primitive.D
 
-	updatedObj = append(updatedObj, bson.E{"token", signedToken})
-	updatedObj = append(updatedObj, bson.E{"refresh_token", signedRefreshToken})
+	updateObj = append(updateObj, bson.E{"token", signedToken})
+	updateObj = append(updateObj, bson.E{"refresh_token", signedRefreshToken})
 
 	Updated_at, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
-	updatedObj = append(updatedObj, bson.E{"updated_at", Updated_at})
+	updateObj = append(updateObj, bson.E{"updated_at", Updated_at})
 
 	upsert := true
 	filter := bson.M{"user_id": userId}
@@ -108,7 +108,7 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 		ctx,
 		filter,
 		bson.D{
-			{"$set", updatedObj},
+			{"$set", updateObj},
 		},
 		&opt,
 	)
@@ -119,5 +119,6 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 		log.Panic(err)
 		return
 	}
-	// return
+
+	return
 }
